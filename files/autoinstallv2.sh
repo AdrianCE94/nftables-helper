@@ -62,12 +62,12 @@ configure_rules() {
 
     # Reglas traviesas
     echo "😈 Añadiendo reglas traviesas..."
-
-    # SSH
     # Permitir hasta 3 intentos por hora
     nft 'add rule inet firewall_travieso input tcp dport 22 ct state new limit rate 3/hour accept'
+    
     # Después de 3 intentos, registrar y rechazar
     nft 'add rule inet firewall_travieso input tcp dport 22 ct state new log prefix "¡Pillín! Superaste los 3 intentos SSH por hora: " reject'
+
 
     # HTTP
     nft 'add rule inet firewall_travieso input tcp dport 80 counter log prefix "¡Ey! Alguien toca mi HTTP: " reject with tcp reset'
