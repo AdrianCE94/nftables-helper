@@ -28,62 +28,37 @@ clean_rules() {
 # Función para configurar las reglas traviesas
 configure_rules() {
     echo "⚙️ Configurando reglas traviesas..."
-    
     # Crear tabla
     nft add table inet firewall_travieso
 
-    # Crear cadena
-    nft add chain inet firewall_travieso input { type filter hook input priority 0 \; }
+    # Crear cadena (corregida la sintaxis)
+    nft 'add chain inet firewall_travieso input { type filter hook input priority 0; policy drop; }'
 
     # Reglas básicas de seguridad
-    nft add rule inet firewall_travieso input ct state established,related accept
-    nft add rule inet firewall_travieso input iif lo accept
+    nft 'add rule inet firewall_travieso input ct state established,related accept'
+    nft 'add rule inet firewall_travieso input iif lo accept'
 
     # Reglas traviesas
     echo "😈 Añadiendo reglas traviesas..."
 
     # SSH
-    nft add rule inet firewall_travieso input \
-        tcp dport 22 \
-        counter \
-        log prefix \"¡Pillín! Intento SSH detectado: \" \
-        reject with icmp type admin-prohibited
-
+    nft 'add rule inet firewall_travieso input tcp dport 22 limit rate 3/minute accept'
+    nft 'add rule inet firewall_travieso input tcp dport 22 counter log prefix "¡Pillín! Demasiados intentos SSH: " reject with icmp type admin-prohibited'    
     # HTTP
-    nft add rule inet firewall_travieso input \
-        tcp dport 80 \
-        counter \
-        log prefix \"¡Ey! Alguien toca mi HTTP: \" \
-        reject
+    nft 'add rule inet firewall_travieso input tcp dport 80 counter log prefix "¡Ey! Alguien toca mi HTTP: " reject'
 
     # FTP
-    nft add rule inet firewall_travieso input \
-        tcp dport 21 \
-        counter \
-        log prefix \"¡Alto ahí! FTP no disponible: \" \
-        reject
+    nft 'add rule inet firewall_travieso input tcp dport 21 counter log prefix "¡Alto ahí! FTP no disponible: " reject'
 
     # Ping flood protection
-    nft add rule inet firewall_travieso input \
-        icmp type echo-request \
-        limit rate over 5/second \
-        log prefix \"¡Oye, no me hagas ping flood! \" \
-        drop
+    nft 'add rule inet firewall_travieso input icmp type echo-request limit rate over 5/second log prefix "¡Oye, no me hagas ping flood! " drop'
 
     # Port scanning detection
-    nft add rule inet firewall_travieso input \
-        tcp flags & (fin|syn) == (fin|syn) \
-        log prefix \"¡Escaneando puertos eh! Pillín: \" \
-        drop
+    nft 'add rule inet firewall_travieso input tcp flags & (fin|syn) == (fin|syn) log prefix "¡Escaneando puertos eh! Pillín: " drop'
 
     # After hours connection attempts
-    nft add rule inet firewall_travieso input \
-        tcp dport {80,443,22} \
-        hour "00:00"-"06:00" \
-        log prefix \"¡A dormir! No hay servicio de madrugada: \" \
-        reject
+    nft 'add rule inet firewall_travieso input tcp dport {80,443,22} hour "00:00"-"06:00" log prefix "¡A dormir! No hay servicio de madrugada: " reject'
 }
-
 # Función para guardar las reglas
 save_rules() {
     echo "💾 Guardando reglas..."
