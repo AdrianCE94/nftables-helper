@@ -27,8 +27,9 @@ sudo nft add rule inet filter input tcp dport 22 log flags all prefix \"SSH_ATTE
 
 ## Ejemplos Avanzados de Reglas
 
+## Límites de tasa (rate limiting):
 ```bash
-# Límites de tasa (rate limiting):
+
 
 # Limitar conexiones SSH a 3 por minuto
 sudo nft add rule inet filter input tcp dport 22 limit rate 3/minute accept
