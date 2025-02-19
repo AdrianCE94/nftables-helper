@@ -7,10 +7,12 @@ Como solución integral, nftables consolida la funcionalidad anteriormente distr
 
 
 ## Documentación oficial de nftables
+> [!NOTE]
+>[nftables](https://wiki.nftables.org/wiki-nftables/index.php/Main_Page)
 
- [nftables](https://wiki.nftables.org/wiki-nftables/index.php/Main_Page)
 
-Si quieres configurar directamente nftables basado en lo que veras en este repositorio, puedes ir a la sección de [Configuración avanzada](configuracion-avanzada.md) o utilizar el autoinstalador que se encuentra en la carpeta files de este repositorio.
+> [!TIP]
+>Si quieres configurar directamente nftables basado en lo que veras en este repositorio, puedes ir a la sección de [Configuración avanzada](configuracion-avanzada.md) o utilizar el autoinstalador que se encuentra en la carpeta files de este repositorio.
 
 ```bash
 git clone https://github.com/AdrianCE94/nftables-helper
