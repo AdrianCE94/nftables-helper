@@ -6,7 +6,7 @@ Como solución integral, nftables consolida la funcionalidad anteriormente distr
 
 
 
-# Documentación oficial de nftables:
+## Documentación oficial de nftables:
 
  [nftables](https://wiki.nftables.org/wiki-nftables/index.php/Main_Page)
 
