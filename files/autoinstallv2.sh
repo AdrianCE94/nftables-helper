@@ -1,118 +1,149 @@
 #!/bin/bash
 
-echo "🔥 Iniciando instalación de Firewall Travieso 🔥"
+# 🔥 Iniciando instalación de Firewall Travieso 🔥
 
 # Función para verificar si se ejecuta como root
 check_root() {
     if [ "$(id -u)" != "0" ]; then 
-        echo "❌ Este script necesita permisos de root"
+        echo "❌ Este script necesita permisos de root. Ejecuta: sudo $0"
         exit 1
     fi
 }
-# Nueva función para seleccionar política
+
+# Función para seleccionar la política de seguridad
 select_policy() {
     echo "🔒 Selecciona la política de seguridad:"
     echo "1. Restrictiva (DROP - Todo bloqueado por defecto, más seguro pero cuidado con SSH)"
-    echo "2. Permisiva (ACCEPT - Solo se bloquea lo especificado, más seguro para pruebas)"
-    read -p "Selecciona una opción (1-2): " policy_choice
+    echo "2. Permisiva (ACCEPT - Solo se bloquea lo especificado, útil para pruebas)"
+    read -rp "Selecciona una opción (1-2): " policy_choice
 
     case $policy_choice in
         1)
             POLICY="drop"
-            echo "⚠️  Has seleccionado política restrictiva (DROP)"
+            echo "⚠️  Política restrictiva (DROP) seleccionada."
             ;;
         2)
             POLICY="accept"
-            echo "ℹ️  Has seleccionado política permisiva (ACCEPT)"
+            echo "ℹ️  Política permisiva (ACCEPT) seleccionada."
             ;;
         *)
-            echo "❌ Opción no válida, usando ACCEPT por defecto"
+            echo "❌ Opción no válida. Se usará ACCEPT por defecto."
             POLICY="accept"
             ;;
     esac
 }
 
-# Función para instalar nftables
+# Función para instalar nftables con manejo de errores
 install_nftables() {
     echo "📦 Instalando nftables..."
-    apt update
-    apt install nftables -y
-    systemctl enable nftables
-    systemctl start nftables
-}
+    if ! apt-get update -y; then
+        echo "❌ Error al actualizar repositorios. Revisa tu conexión."
+        exit 1
+    fi
 
-# Función para limpiar reglas existentes
-clean_rules() {
-    echo "🧹 Limpiando reglas existentes..."
-    nft flush ruleset
-}
+    if ! apt-get install -y nftables; then
+        echo "❌ Error al instalar nftables. Intenta instalarlo manualmente."
+        exit 1
+    fi
 
-# Función para configurar las reglas traviesas
-configure_rules() {
-    echo "⚙️ Configurando reglas traviesas..."
-    # Crear tabla
-    nft add table inet firewall_travieso
-
-    # Crear cadena con la política seleccionada
-    nft "add chain inet firewall_travieso input { type filter hook input priority 0; policy ${POLICY}; }"
-
-    # Reglas básicas de seguridad
-    nft 'add rule inet firewall_travieso input ct state established,related accept'
-    nft 'add rule inet firewall_travieso input iif lo accept'
-
-    # Reglas traviesas
-    echo "😈 Añadiendo reglas traviesas..."
-    # Permitir hasta 3 intentos por hora
-    nft 'add rule inet firewall_travieso input tcp dport 22 ct state new limit rate 3/hour accept'
-    
-    # Después de 3 intentos, registrar y rechazar
-    nft 'add rule inet firewall_travieso input tcp dport 22 ct state new log prefix "¡Pillín! Superaste los 3 intentos SSH por hora: " reject'
-
-
-    # HTTP
-    nft 'add rule inet firewall_travieso input tcp dport 80 counter log prefix "¡Ey! Alguien toca mi HTTP: " reject with tcp reset'
-
-    # FTP
-    nft 'add rule inet firewall_travieso input tcp dport 21 counter log prefix "¡Alto ahí! FTP no disponible: " reject with tcp reset'
-
-    # Ping flood protection
-    nft 'add rule inet firewall_travieso input icmp type echo-request limit rate 5/second accept'
-    nft 'add rule inet firewall_travieso input icmp type echo-request counter log prefix "¡Oye, no me hagas ping flood! " drop'
-
-    # Port scanning detection
-    nft 'add rule inet firewall_travieso input tcp flags & (fin|syn) == (fin|syn) log prefix "¡Escaneando puertos eh! Pillín: " drop'
-
-    # After hours connection attempts
-    nft 'add rule inet firewall_travieso input tcp dport {80,443,22} hour "00:00"-"06:00" log prefix "¡A dormir! No hay servicio de madrugada: " reject'
-}
-
-# Función para guardar las reglas
-save_rules() {
-    echo "💾 Guardando reglas..."
-    nft list ruleset > /etc/nftables.conf
-}
-
-# Función para verificar la instalación
-verify_installation() {
-    echo "✅ Verificando instalación..."
-    systemctl restart nftables.service
-    if systemctl is-active --quiet nftables; then
-        echo "✨ nftables está activo y funcionando"
-        echo "🔍 Puedes ver los logs con: sudo tail -f /var/log/kern.log"
-        echo "📊 Puedes ver las reglas con: sudo nft list ruleset"
-    else
-        echo "❌ Algo salió mal en la instalación"
+    if ! systemctl enable --now nftables; then
+        echo "❌ Error al habilitar nftables. Revisa los logs."
         exit 1
     fi
 }
 
-# Menú de instalación
+# Función para hacer una copia de seguridad de las reglas actuales y limpiar
+clean_rules() {
+    echo "🧹 Realizando copia de seguridad de las reglas actuales..."
+    BACKUP_FILE="/etc/nftables.backup.$(date +%Y%m%d_%H%M%S)"
+    if nft list ruleset > "$BACKUP_FILE"; then
+        echo "✅ Copia de seguridad guardada en: $BACKUP_FILE"
+    else
+        echo "⚠️ No se pudo realizar la copia de seguridad. Verifica permisos."
+    fi
+
+    echo "🧽 Limpiando reglas existentes..."
+    nft flush ruleset
+}
+
+# Función para configurar reglas predeterminadas
+configure_rules() {
+    echo "⚙️ Configurando reglas predeterminadas..."
+    nft add table inet firewall_travieso
+    nft "add chain inet firewall_travieso input { type filter hook input priority 0; policy ${POLICY}; }"
+
+    nft 'add rule inet firewall_travieso input ct state established,related accept'
+    nft 'add rule inet firewall_travieso input iif lo accept'
+
+    echo "😈 Añadiendo reglas específicas..."
+    nft 'add rule inet firewall_travieso input tcp dport 22 ct state new limit rate 3/hour accept'
+    nft 'add rule inet firewall_travieso input tcp dport 22 ct state new log prefix "¡Pillín! Exceso de intentos SSH: " reject'
+    nft 'add rule inet firewall_travieso input tcp dport 80 counter log prefix "HTTP no autorizado: " reject with tcp reset'
+    nft 'add rule inet firewall_travieso input tcp dport 21 counter log prefix "FTP bloqueado: " reject with tcp reset'
+    nft 'add rule inet firewall_travieso input icmp type echo-request limit rate 5/second accept'
+    nft 'add rule inet firewall_travieso input icmp type echo-request counter log prefix "Exceso de pings: " drop'
+    nft 'add rule inet firewall_travieso input tcp flags & (fin|syn) == (fin|syn) log prefix "Escaneo detectado: " drop'
+    nft 'add rule inet firewall_travieso input tcp dport {80,443,22} hour "00:00"-"06:00" log prefix "Acceso fuera de horario: " reject'
+}
+
+# Función para introducir reglas manualmente
+manual_rules() {
+    echo "✍️ Introducción manual de reglas. Pulsa 'q' para salir."
+    while true; do
+        read -rp "🔢 Puerto (o 'q' para salir): " port
+        [[ "$port" == "q" ]] && break
+
+        if ! [[ "$port" =~ ^[0-9]+$ ]] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+            echo "❌ Puerto inválido. Introduce un número entre 1 y 65535."
+            continue
+        fi
+
+        read -rp "🚦 Acción (accept/reject/drop): " action
+        case $action in
+            accept|reject|drop)
+                nft "add rule inet firewall_travieso input tcp dport $port $action"
+                echo "✅ Regla añadida: Puerto $port -> $action"
+                ;;
+            *)
+                echo "❌ Acción no válida. Usa accept, reject o drop."
+                ;;
+        esac
+    done
+}
+
+# Función para guardar las reglas
+save_rules() {
+    echo "💾 Guardando configuración en /etc/nftables.conf..."
+    echo "#!/usr/sbin/nft -f" > /etc/nftables.conf
+    if nft list ruleset >> /etc/nftables.conf; then
+        echo "✅ Configuración guardada correctamente."
+    else
+        echo "❌ Error al guardar la configuración. Revisa permisos."
+    fi
+}
+
+# Función para verificar el estado de nftables
+verify_installation() {
+    echo "🔎 Verificando estado de nftables..."
+    if systemctl restart nftables && systemctl is-active --quiet nftables; then
+        echo "✅ nftables activo y funcionando."
+        echo "📊 Ver reglas: sudo nft list ruleset"
+        echo "📄 Ver logs: sudo tail -f /var/log/kern.log"
+    else
+        echo "❌ Error al iniciar nftables. Revisa la configuración."
+        exit 1
+    fi
+}
+
+# Menú principal
 show_menu() {
-    echo "🔥 Firewall Travieso - Menú de Instalación 🔥"
-    echo "1. Instalar todo (recomendado)"
-    echo "2. Solo instalar reglas (si ya tienes nftables)"
-    echo "3. Salir"
-    read -p "Selecciona una opción (1-3): " choice
+    echo "🔥 Firewall Travieso - Menú 🔥"
+    echo "1. Instalación completa (recomendado)"
+    echo "2. Solo instalar reglas predeterminadas"
+    echo "3. Guardar configuración y verificar"
+    echo "4. Introducir reglas manualmente"
+    echo "5. Salir"
+    read -rp "Selecciona una opción (1-5): " choice
 
     case $choice in
         1)
@@ -133,12 +164,22 @@ show_menu() {
             verify_installation
             ;;
         3)
-            echo "👋 ¡Hasta luego!"
+            save_rules
+            verify_installation
+            ;;
+        4)
+            check_root
+            manual_rules
+            save_rules
+            verify_installation
+            ;;
+        5)
+            echo "👋 ¡Hasta pronto!"
             exit 0
             ;;
         *)
-            echo "❌ Opción no válida"
-            exit 1
+            echo "❌ Opción no válida. Intenta de nuevo."
+            show_menu
             ;;
     esac
 }
