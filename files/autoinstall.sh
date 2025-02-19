@@ -42,8 +42,11 @@ configure_rules() {
     echo "😈 Añadiendo reglas traviesas..."
 
     # SSH
-    nft 'add rule inet firewall_travieso input tcp dport 22 limit rate 3/minute accept'
-    nft 'add rule inet firewall_travieso input tcp dport 22 counter log prefix "¡Pillín! Demasiados intentos SSH: " reject with icmp type admin-prohibited'    
+    # Primero permitimos 3 intentos por hora
+    nft 'add rule inet firewall_travieso input tcp dport 22 limit rate 3/hour accept'
+
+    # Después de 3 intentos, bloqueamos y logueamos
+    nft 'add rule inet firewall_travieso input tcp dport 22 counter log prefix "¡Pillín! Superaste los 3 intentos SSH por hora: " reject with icmp type admin-prohibited'   
     # HTTP
     nft 'add rule inet firewall_travieso input tcp dport 80 counter log prefix "¡Ey! Alguien toca mi HTTP: " reject'
 
@@ -52,7 +55,7 @@ configure_rules() {
 
     # Ping flood protection
     nft 'add rule inet firewall_travieso input icmp type echo-request limit rate 5/second accept'
-    nft 'add rule inet firewall_travieso input icmp type echo-request log prefix "¡Oye, no me hagas ping flood! " drop'
+    nft 'add rule inet firewall_travieso input icmp type echo-request counter log prefix "¡Oye, no me hagas ping flood! " drop'
 
     # Port scanning detection
     nft 'add rule inet firewall_travieso input tcp flags & (fin|syn) == (fin|syn) log prefix "¡Escaneando puertos eh! Pillín: " drop'
