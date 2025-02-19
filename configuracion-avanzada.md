@@ -185,3 +185,27 @@ sudo nft list chain inet firewall_travieso input -a
 sudo tail -f /var/log/kern.log | grep -E "Pillín|Ey|Alto|dormir|velocista"
 ```
 
+## Para instancias de AWS y no autobloquearnos haremos lo siguiente :
+```bash
+sudo nft flush ruleset
+sudo nft add table inet firewall_travieso
+sudo nft 'add chain inet firewall_travieso input { type filter hook input priority 0; policy accept; }'
+# Conexiones establecidas
+sudo nft 'add rule inet firewall_travieso input ct state established,related accept'
+
+# Loopback
+sudo nft 'add rule inet firewall_travieso input iif lo accept'
+
+# SSH (IMPORTANTE: asegura tu acceso)
+sudo nft 'add rule inet firewall_travieso input tcp dport 22 accept'
+
+# Regla para HTTP (puerto 80)
+sudo nft 'add rule inet firewall_travieso input tcp dport 80 counter log prefix "¡Ey! Alguien toca mi HTTP: " reject'
+
+# Regla para FTP (puerto 21)
+sudo nft 'add rule inet firewall_travieso input tcp dport 21 counter log prefix "¡Alto ahí! FTP no disponible: " reject'
+# Como root 
+ nft list ruleset > /etc/nftables.conf
+sudo systemctl enable nftables
+sudo systemctl restart nftables
+```
