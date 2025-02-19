@@ -42,11 +42,12 @@ configure_rules() {
     echo "😈 Añadiendo reglas traviesas..."
 
     # SSH
-    # Primero permitimos 3 intentos por hora
-    nft 'add rule inet firewall_travieso input tcp dport 22 limit rate 3/hour accept'
+    
+    # Permitir hasta 3 intentos por hora
+    nft 'add rule inet firewall_travieso input tcp dport 22 ct state new limit rate 3/hour accept'
+    # Después de 3 intentos, registrar y rechazar
+    nft 'add rule inet firewall_travieso input tcp dport 22 ct state new log prefix "¡Pillín! Superaste los 3 intentos SSH por hora: " reject'
 
-    # Después de 3 intentos, bloqueamos y logueamos
-    nft 'add rule inet firewall_travieso input tcp dport 22 counter log prefix "¡Pillín! Superaste los 3 intentos SSH por hora: " reject with icmp type admin-prohibited'   
     # HTTP
     nft 'add rule inet firewall_travieso input tcp dport 80 counter log prefix "¡Ey! Alguien toca mi HTTP: " reject'
 
@@ -72,6 +73,7 @@ save_rules() {
 # Función para verificar la instalación
 verify_installation() {
     echo "✅ Verificando instalación..."
+    systemctl restart nftables.service
     if systemctl is-active --quiet nftables; then
         echo "✨ nftables está activo y funcionando"
         echo "🔍 Puedes ver los logs con: sudo tail -f /var/log/kern.log"
