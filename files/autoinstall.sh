@@ -54,8 +54,8 @@ configure_rules() {
     nft 'add rule inet firewall_travieso input tcp dport 21 counter log prefix "¡Alto ahí! FTP no disponible: " reject'
 
     # Ping flood protection
-    nft 'add rule inet firewall_travieso input icmp type echo-request limit rate 5/second accept'
-    nft 'add rule inet firewall_travieso input icmp type echo-request counter log prefix "¡Oye, no me hagas ping flood! " drop'
+    nft 'add rule inet firewall_travieso input icmp type echo-request limit rate over 5/second log prefix "¡Oye, no me hagas ping flood! " drop'
+
 
     # Port scanning detection
     nft 'add rule inet firewall_travieso input tcp flags & (fin|syn) == (fin|syn) log prefix "¡Escaneando puertos eh! Pillín: " drop'
