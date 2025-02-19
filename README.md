@@ -172,11 +172,12 @@ sudo journalctl -k | grep "nft"
 
 ```bash
 # Probar con nmap
-nmap -p 80,21 [ip-objetivo]
+nmap -p 80,21,22 [ip-objetivo]
+nmap --scanflags FIN,SYN -p 80,443,22 [ip-objetivo]
 
 # Probar con servicios específicos
 ftp [ip-objetivo]
-curl [ip-objetivo]
+curl http://ip-objetivo
 ```
 
 Para una configuración avanzada, revisa el apartado de este repositorio para ello --> [Configuración avanzada](configuracion-avanzada.md)
