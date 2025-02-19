@@ -5,8 +5,6 @@ Nftables es un subsistema del kernel Linux y el sucesor moderno de iptables, des
 Como solución integral, nftables consolida la funcionalidad anteriormente distribuida entre múltiples herramientas (iptables, ip6tables, arptables y ebtables) en un único framework cohesivo. Esta unificación se logra a través de una interfaz de usuario común (nft) que simplifica significativamente la administración de reglas de red, mientras mantiene compatibilidad con la sintaxis heredada de iptables para facilitar la transición.
 
 
-
-## Documentación oficial de nftables
 > [!NOTE]
 >## Documentación oficial de nftables
 >[nftables](https://wiki.nftables.org/wiki-nftables/index.php/Main_Page)
