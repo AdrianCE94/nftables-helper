@@ -87,25 +87,93 @@ configure_rules() {
 }
 
 # Función para introducir reglas manualmente
+# Función para introducir reglas manualmente
 manual_rules() {
-    echo "✍️ Introducción manual de reglas. Pulsa 'q' para salir."
+    echo "✍️ Configuración manual de reglas de firewall"
+    echo "------------------------------------------------"
+    
     while true; do
-        read -rp "🔢 Puerto (o 'q' para salir): " port
-        [[ "$port" == "q" ]] && break
+        echo -e "\n📌 Menú de Reglas Manuales:"
+        echo "1. Añadir nueva regla"
+        echo "2. Ver reglas actuales"
+        echo "3. Eliminar regla específica"
+        echo "4. Volver al menú principal"
+        
+        read -rp "Selecciona una opción (1-4): " manual_choice
 
-        if ! [[ "$port" =~ ^[0-9]+$ ]] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
-            echo "❌ Puerto inválido. Introduce un número entre 1 y 65535."
-            continue
-        fi
+        case $manual_choice in
+            1)
+                echo -e "\n🔧 Configuración de nueva regla"
+                # Selección de puerto
+                while true; do
+                    read -rp "🔢 Puerto (1-65535): " port
+                    if [[ "$port" =~ ^[0-9]+$ ]] && [ "$port" -ge 1 ] && [ "$port" -le 65535 ]; then
+                        break
+                    else
+                        echo "❌ Puerto inválido. Debe ser un número entre 1 y 65535."
+                    fi
+                done
 
-        read -rp "🚦 Acción (accept/reject/drop): " action
-        case $action in
-            accept|reject|drop)
-                nft "add rule inet firewall_travieso input tcp dport $port $action"
-                echo "✅ Regla añadida: Puerto $port -> $action"
+                # Selección de acción
+                echo "Acciones disponibles:"
+                echo "1. accept (permitir)"
+                echo "2. reject (rechazar con respuesta)"
+                echo "3. drop (descartar sin respuesta)"
+                while true; do
+                    read -rp "🚦 Selecciona la acción (1-3): " action_choice
+                    case $action_choice in
+                        1) action="accept"; break ;;
+                        2) action="reject with tcp reset"; break ;;
+                        3) action="drop"; break ;;
+                        *) echo "❌ Opción no válida." ;;
+                    esac
+                done
+
+                # Configuración de logging
+                read -rp "📝 ¿Añadir registro (log)? (s/n): " log_choice
+                if [[ "$log_choice" == "s" ]]; then
+                    read -rp "✏️ Mensaje para el log: " log_message
+                    rule="tcp dport $port counter log prefix \"$log_message: \" $action"
+                else
+                    rule="tcp dport $port $action"
+                fi
+
+                # Añadir la regla
+                if nft "add rule inet firewall_travieso input $rule"; then
+                    echo "✅ Regla añadida correctamente"
+                else
+                    echo "❌ Error al añadir la regla"
+                fi
                 ;;
+            
+            2)
+                echo -e "\n📋 Reglas actuales:"
+                nft -a list chain inet firewall_travieso input
+                read -rp "Presiona Enter para continuar..."
+                ;;
+            
+            3)
+                echo -e "\n🗑️ Eliminar regla"
+                nft -a list chain inet firewall_travieso input
+                read -rp "Handle de la regla a eliminar (número): " handle
+                if [[ "$handle" =~ ^[0-9]+$ ]]; then
+                    if nft delete rule inet firewall_travieso input handle "$handle"; then
+                        echo "✅ Regla eliminada correctamente"
+                    else
+                        echo "❌ Error al eliminar la regla"
+                    fi
+                else
+                    echo "❌ Handle inválido"
+                fi
+                ;;
+            
+            4)
+                echo "↩️ Volviendo al menú principal..."
+                return
+                ;;
+            
             *)
-                echo "❌ Acción no válida. Usa accept, reject o drop."
+                echo "❌ Opción no válida"
                 ;;
         esac
     done
