@@ -169,7 +169,7 @@ ftp [ip-objetivo]
 curl [ip-objetivo]
 ```
 
-Para una configuracion avanzada, revisa el apartado de este repositorio para ello --> [Configuración avanzada](configuracion-avanzada.md)
+Para una configuración avanzada, revisa el apartado de este repositorio para ello --> [Configuración avanzada](configuracion-avanzada.md)
 
 
 Gracias por leer este documento, espero que te haya sido de ayuda. Si tienes alguna duda, no dudes en preguntar.
