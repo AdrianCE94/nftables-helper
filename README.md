@@ -182,6 +182,33 @@ curl http://ip-objetivo
 
 Para una configuración avanzada, revisa el apartado de este repositorio para ello --> [Configuración avanzada](configuracion-avanzada.md)
 
+# 🛡️ Estados de Puertos en Nmap y su Relación con NFTables 🛡️
+
+## 📊 Estados Básicos
+| Estado    | Significado                                      | Relación con NFTables               |
+|-----------|--------------------------------------------------|-------------------------------------|
+| **Filtered** | Nmap no puede determinar si el puerto está abierto | Generalmente por reglas **DROP**    |
+| **Closed**  | El puerto está cerrado activamente               | Generalmente por reglas **REJECT**  |
+
+## 🔒 Puerto Filtered
+Cuando un puerto aparece como **"filtered"** es porque Nmap no recibe ninguna respuesta del objetivo. Esto ocurre típicamente cuando:
+- 🚫 Las reglas de NFTables están configuradas con **DROP**, lo que significa que los paquetes son descartados silenciosamente.
+- 🔥 El firewall está ignorando completamente los intentos de conexión.
+
+## 🔐 Puerto Closed
+Un puerto **"closed"** significa que el sistema responde activamente indicando que no hay servicios escuchando en ese puerto. Esto suele ocurrir cuando:
+- ❌ Las reglas de NFTables están configuradas con **REJECT**, que envía una respuesta explícita de rechazo.
+- 💻 El sistema está activo pero no hay servicios en ese puerto específico.
+
+## 🔗 Relación con NFTables
+La diferencia principal está en cómo manejas los paquetes:
+- 🚫 **drop**: Los paquetes se descartan sin notificación, resultando en **"filtered"** en Nmap.
+- ❌ **reject**: Se envía una respuesta de rechazo, resultando en **"closed"** en Nmap.
+
+## 📚 Referencias adicionales
+- 📖 Documentación oficial de Nmap: [https://nmap.org/book/man-port-scanning-basics.html](https://nmap.org/book/man-port-scanning-basics.html)
+- 🌐 Wiki de NFTables: [https://wiki.nftables.org](https://wiki.nftables.org)
+
 
 Gracias por leer este documento, espero que te haya sido de ayuda. Si tienes alguna duda, no dudes en preguntar.
 
